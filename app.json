@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Metro Hospital",
+    "slug": "hms",
+    "version": "1.0.0",
+    "orientation": "default",
+    "scheme": "hms",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hms.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to scan patient wristbands, sample labels and medicine packs.",
+        "NSPhotoLibraryUsageDescription": "Used to attach scanned reports and consent forms to a patient record."
+      }
+    },
+    "android": {
+      "package": "com.hms.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "themeColor": "#12367F",
+      "description": "Reception, consultation, wards, laboratory, pharmacy and billing on one connected platform."
+    },
+    "plugins": ["expo-secure-store", "expo-font", "expo-camera", "expo-audio"],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "de336b74-2d97-49c5-b626-adadb2237145"
+      }
+    },
+    "owner": "hms699s-team"
+  }
+}
