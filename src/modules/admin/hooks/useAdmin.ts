@@ -417,6 +417,24 @@ export const useUpdateBed = () => {
   });
 };
 
+/**
+ * Admin-only, and refused (ESTATE_HAS_HISTORY) for anything a patient was ever
+ * admitted to. Deleting a ward takes its rooms and beds; a room takes its beds.
+ */
+export const useDeleteEstate = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ kind, id }: { kind: "ward" | "room" | "bed"; id: string }) =>
+      kind === "ward"
+        ? adminApi.wards.remove(id)
+        : kind === "room"
+          ? adminApi.rooms.remove(id)
+          : adminApi.beds.remove(id),
+    onSuccess: () => afterBedEstateChange(qc),
+    onError: () => afterBedEstateChange(qc),
+  });
+};
+
 export const useRooms = (wardId?: string) =>
   useQuery({
     queryKey: adminKeys.rooms(wardId),

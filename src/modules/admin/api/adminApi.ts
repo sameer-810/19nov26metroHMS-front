@@ -226,6 +226,13 @@ export const adminApi = {
     update: async (id: string, body: WardPatch) =>
       (await apiClient.patch<{ data: Ward }>(`/beds/wards/${id}`, body)).data
         .data,
+    /** admin only; refused (ESTATE_HAS_HISTORY) once any patient was admitted to it. */
+    remove: async (id: string) =>
+      (
+        await apiClient.delete<{
+          data: { id: string; rooms: number; beds: number };
+        }>(`/beds/wards/${id}`)
+      ).data.data,
   },
 
   rooms: {
@@ -245,6 +252,12 @@ export const adminApi = {
     update: async (id: string, body: RoomPatch) =>
       (await apiClient.patch<{ data: Room }>(`/beds/rooms/${id}`, body)).data
         .data,
+    remove: async (id: string) =>
+      (
+        await apiClient.delete<{ data: { id: string; beds: number } }>(
+          `/beds/rooms/${id}`,
+        )
+      ).data.data,
   },
 
   beds: {
@@ -268,6 +281,9 @@ export const adminApi = {
     /** deactivating an occupied bed is refused (BED_OCCUPIED). */
     update: async (id: string, body: BedPatch) =>
       (await apiClient.patch<{ data: Bed }>(`/beds/${id}`, body)).data.data,
+    remove: async (id: string) =>
+      (await apiClient.delete<{ data: { id: string } }>(`/beds/${id}`)).data
+        .data,
     /** `occupied` is not accepted; admission and discharge own that transition. */
     setStatus: async (
       id: string,

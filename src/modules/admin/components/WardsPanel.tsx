@@ -36,6 +36,7 @@ import {
   useCreateRoom,
   useWardBeds,
   useCreateBedsBulk,
+  useDeleteEstate,
 } from "@modules/admin/hooks/useAdmin";
 import { ToggleRow } from "@modules/admin/components/ToggleRow";
 import {
@@ -64,6 +65,65 @@ const CODE = /^[A-Z0-9-]{2,10}$/;
 
 const natural = (a: string, b: string) =>
   a.localeCompare(b, undefined, { numeric: true });
+
+/**
+ * Delete with a confirmation. The server allows it for administrators only, and
+ * only for a ward, room or bed no patient was ever admitted to; anything with
+ * history comes back refused, with the reason shown through `onFailed`.
+ */
+function DeleteEstateButton({
+  kind,
+  id,
+  name,
+  detail,
+  onDone,
+  onFailed,
+  testID,
+}: {
+  kind: "ward" | "room" | "bed";
+  id: string;
+  name: string;
+  detail: string;
+  onDone: () => void;
+  onFailed: (message: string) => void;
+  testID: string;
+}) {
+  const del = useDeleteEstate();
+  const [asking, setAsking] = useState(false);
+  return (
+    <>
+      <Button
+        label="Delete"
+        size="xs"
+        variant="ghost"
+        fullWidth={false}
+        accessibilityHint={`Delete ${name} permanently`}
+        onPress={() => setAsking(true)}
+        testID={testID}
+      />
+      <ConfirmDialog
+        visible={asking}
+        title={`Delete ${name}?`}
+        message={`${detail} This cannot be undone. Only possible if no patient was ever admitted here; otherwise deactivate it instead.`}
+        confirmLabel="Yes, delete"
+        destructive
+        loading={del.isPending}
+        onConfirm={() =>
+          del.mutate(
+            { kind, id },
+            {
+              onSuccess: onDone,
+              onError: (e) =>
+                onFailed(apiErrorMessage(e, `Could not delete ${name}`)),
+              onSettled: () => setAsking(false),
+            },
+          )
+        }
+        onCancel={() => setAsking(false)}
+      />
+    </>
+  );
+}
 
 /**
  * Ward -> room -> bed setup, in that order (a bed's ward comes from its room).
@@ -267,6 +327,22 @@ export function WardsPanel() {
                           testID={`ward-activate-${w.code}`}
                         />
                       )}
+                      <DeleteEstateButton
+                        kind="ward"
+                        id={w.id}
+                        name={w.name}
+                        detail="The ward is removed with all its rooms and beds."
+                        onDone={() => {
+                          setFailure(null);
+                          if (open === w.id) setOpen(null);
+                          setNotice(`${w.name} (${w.code}) deleted.`);
+                        }}
+                        onFailed={(m) => {
+                          setNotice(null);
+                          setFailure(m);
+                        }}
+                        testID={`ward-delete-${w.code}`}
+                      />
                     </HStack>
                   </HStack>
                   {isOpen ? <WardEstate ward={w} /> : null}
@@ -514,7 +590,12 @@ function RoomBlock({
   const [editingRoom, setEditingRoom] = useState(false);
   const [editingBed, setEditingBed] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
   const bed = beds.find((b) => b.id === editingBed);
+  const failed = (m: string) => {
+    setSaved(null);
+    setFailure(m);
+  };
 
   return (
     <VStack
@@ -563,8 +644,26 @@ function RoomBlock({
             onPress={onToggleAdding}
             testID={`room-add-beds-${ward.code}-${room.number}`}
           />
+          <DeleteEstateButton
+            kind="room"
+            id={room.id}
+            name={`room ${room.number}`}
+            detail={`Room ${room.number} is removed with its ${beds.length} bed${beds.length === 1 ? "" : "s"}.`}
+            onDone={() => setFailure(null)}
+            onFailed={failed}
+            testID={`room-delete-${ward.code}-${room.number}`}
+          />
         </HStack>
       </HStack>
+      {failure ? (
+        <View testID={`room-error-${ward.code}-${room.number}`}>
+          <Banner
+            tone="danger"
+            message={failure}
+            onDismiss={() => setFailure(null)}
+          />
+        </View>
+      ) : null}
       {saved ? (
         <View testID={`room-saved-${ward.code}-${room.number}`}>
           <Banner
@@ -642,17 +741,34 @@ function RoomBlock({
             })}
           </HStack>
           {bed ? (
-            <BedEditForm
-              key={bed.id}
-              bed={bed}
-              onCancel={() => setEditingBed(null)}
-              onSaved={(b) => {
-                setEditingBed(null);
-                setSaved(
-                  `Bed ${b.number} saved. Bills drawn up from now on use its charge.`,
-                );
-              }}
-            />
+            <VStack gap={6}>
+              <BedEditForm
+                key={bed.id}
+                bed={bed}
+                onCancel={() => setEditingBed(null)}
+                onSaved={(b) => {
+                  setEditingBed(null);
+                  setSaved(
+                    `Bed ${b.number} saved. Bills drawn up from now on use its charge.`,
+                  );
+                }}
+              />
+              <HStack>
+                <DeleteEstateButton
+                  kind="bed"
+                  id={bed.id}
+                  name={`bed ${bed.number}`}
+                  detail={`Bed ${bed.number} is removed from room ${room.number}.`}
+                  onDone={() => {
+                    setEditingBed(null);
+                    setFailure(null);
+                    setSaved(`Bed ${bed.number} deleted.`);
+                  }}
+                  onFailed={failed}
+                  testID={`bed-delete-${ward.code}-${bed.number}`}
+                />
+              </HStack>
+            </VStack>
           ) : (
             <Text variant="caption" tone="tertiary">
               Choose a bed to change its charge, equipment or whether it is in
