@@ -5,7 +5,7 @@
  * keep it in step with connect-src in vercel.json.
  */
 
-const LIVE_API_ORIGIN = "https://one1-9-26-hms-back.onrender.com";
+const LIVE_API_ORIGIN = "https://one9nov26metrohms-back.onrender.com";
 
 const DEV_API =
   process.env.EXPO_PUBLIC_API_URL_DEV || "http://localhost:5003/api/v1";
