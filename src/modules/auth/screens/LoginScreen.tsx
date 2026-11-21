@@ -26,6 +26,7 @@ import {
   Card,
   Select,
   BrandLogo,
+  SiteFooter,
 } from "@shared/ui";
 import { ControlledTextField } from "@shared/form/ControlledTextField";
 import { apiErrorCode, apiErrorMessage } from "@api/apiClient";
@@ -123,120 +124,123 @@ export default function LoginScreen({ navigation }: { navigation?: any }) {
         </LinearGradient>
       ) : null}
 
-      <ScrollView
-        style={styles.pane}
-        contentContainerStyle={styles.paneContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <VStack gap={20} style={{ width: "100%", maxWidth: 380 }}>
-          {!isWide ? (
-            <View style={styles.compactLogo}>
-              <BrandLogo width={260} />
-            </View>
-          ) : null}
+      <View style={styles.paneColumn}>
+        <ScrollView
+          style={styles.pane}
+          contentContainerStyle={styles.paneContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <VStack gap={20} style={{ width: "100%", maxWidth: 380 }}>
+            {!isWide ? (
+              <View style={styles.compactLogo}>
+                <BrandLogo width={260} />
+              </View>
+            ) : null}
 
-          <VStack gap={4}>
-            <Text variant="display-sm" tone="primary" heading={1}>
-              Sign in
-            </Text>
-            <Text variant="body-sm" tone="tertiary">
-              Use the credentials issued by your hospital administrator.
-            </Text>
-          </VStack>
+            <VStack gap={4}>
+              <Text variant="display-sm" tone="primary" heading={1}>
+                Sign in
+              </Text>
+              <Text variant="body-sm" tone="tertiary">
+                Use the credentials issued by your hospital administrator.
+              </Text>
+            </VStack>
 
-          {notice ? (
-            <View testID="login-session-notice">
+            {notice ? (
+              <View testID="login-session-notice">
+                <Banner
+                  tone="info"
+                  title="Signed out"
+                  message={notice}
+                  onDismiss={() => clearNotice(null)}
+                />
+              </View>
+            ) : null}
+            {error ? (
               <Banner
-                tone="info"
-                title="Signed out"
-                message={notice}
-                onDismiss={() => clearNotice(null)}
-              />
-            </View>
-          ) : null}
-          {error ? (
-            <Banner
-              tone="danger"
-              message={error}
-              onDismiss={() => setError(null)}
-            />
-          ) : null}
-
-          <VStack gap={14}>
-            <ControlledTextField
-              control={control}
-              name="identifier"
-              label="Email or employee ID"
-              placeholder="you@hospital.in or your staff ID"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="username"
-              testID="login-email"
-              leading={
-                <UserRound
-                  size={16}
-                  color={palette.text.tertiary}
-                  strokeWidth={1.9}
-                />
-              }
-            />
-            <ControlledTextField
-              control={control}
-              name="password"
-              label="Password"
-              placeholder="Your password"
-              secureTextEntry
-              autoComplete="current-password"
-              testID="login-password"
-              onSubmitEditing={submit}
-              returnKeyType="go"
-              leading={
-                <Lock
-                  size={16}
-                  color={palette.text.tertiary}
-                  strokeWidth={1.9}
-                />
-              }
-            />
-
-            {hospitals && hospitals.length > 1 ? (
-              <Select
-                label="Hospital"
-                required
-                value={hospitalId}
-                onChange={setHospitalId}
-                placeholder="Choose a hospital"
-                options={hospitals.map((h) => ({
-                  value: h.hospitalId,
-                  label: h.hospitalName,
-                  sublabel: h.hospitalCode,
-                }))}
+                tone="danger"
+                message={error}
+                onDismiss={() => setError(null)}
               />
             ) : null}
 
-            <Button
-              label="Sign in"
-              onPress={submit}
-              loading={busy}
-              testID="login-submit"
-            />
+            <VStack gap={14}>
+              <ControlledTextField
+                control={control}
+                name="identifier"
+                label="Email or employee ID"
+                placeholder="you@hospital.in or your staff ID"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="username"
+                testID="login-email"
+                leading={
+                  <UserRound
+                    size={16}
+                    color={palette.text.tertiary}
+                    strokeWidth={1.9}
+                  />
+                }
+              />
+              <ControlledTextField
+                control={control}
+                name="password"
+                label="Password"
+                placeholder="Your password"
+                secureTextEntry
+                autoComplete="current-password"
+                testID="login-password"
+                onSubmitEditing={submit}
+                returnKeyType="go"
+                leading={
+                  <Lock
+                    size={16}
+                    color={palette.text.tertiary}
+                    strokeWidth={1.9}
+                  />
+                }
+              />
 
-            <Button
-              label="Forgot your password?"
-              variant="ghost"
-              size="sm"
-              onPress={() => navigation?.navigate?.("ForgotPassword")}
-            />
+              {hospitals && hospitals.length > 1 ? (
+                <Select
+                  label="Hospital"
+                  required
+                  value={hospitalId}
+                  onChange={setHospitalId}
+                  placeholder="Choose a hospital"
+                  options={hospitals.map((h) => ({
+                    value: h.hospitalId,
+                    label: h.hospitalName,
+                    sublabel: h.hospitalCode,
+                  }))}
+                />
+              ) : null}
+
+              <Button
+                label="Sign in"
+                onPress={submit}
+                loading={busy}
+                testID="login-submit"
+              />
+
+              <Button
+                label="Forgot your password?"
+                variant="ghost"
+                size="sm"
+                onPress={() => navigation?.navigate?.("ForgotPassword")}
+              />
+            </VStack>
+
+            <Card compact>
+              <Text variant="caption" tone="tertiary">
+                Everything you do is recorded against your account. Do not share
+                it, and do not sign in on behalf of a colleague.
+              </Text>
+            </Card>
           </VStack>
-
-          <Card compact>
-            <Text variant="caption" tone="tertiary">
-              Everything you do is recorded against your account. Do not share
-              it, and do not sign in on behalf of a colleague.
-            </Text>
-          </Card>
-        </VStack>
-      </ScrollView>
+        </ScrollView>
+        <SiteFooter />
+      </View>
     </View>
   );
 }
@@ -272,6 +276,7 @@ const styles = StyleSheet.create({
     height: 160,
     opacity: 0.1,
   },
+  paneColumn: { flex: 1, backgroundColor: palette.surface.primary },
   pane: { flex: 1, backgroundColor: palette.surface.primary },
   paneContent: {
     flexGrow: 1,

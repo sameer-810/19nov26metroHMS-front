@@ -3,6 +3,7 @@ export { Stack, VStack, HStack } from "./Stack";
 export { Button } from "./Button";
 export { Card } from "./Card";
 export { Screen } from "./Screen";
+export { SiteFooter } from "./SiteFooter";
 
 export { TextField } from "./TextField";
 export { SearchInput } from "./SearchInput";
