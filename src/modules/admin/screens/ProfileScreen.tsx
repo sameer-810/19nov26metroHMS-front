@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { View } from "react-native";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react-native";
 
 import { palette } from "@shared/designSystem";
-import { ROLE_LABELS } from "@shared/permissions";
+import { ROLES, ROLE_LABELS } from "@shared/permissions";
 import { useAuthStore, type AuthUser } from "@shared/store/useAuthStore";
 import {
   Screen,
@@ -28,13 +29,20 @@ import {
   type ChangePasswordForm,
 } from "@modules/auth/auth.validation";
 import { SessionsCard } from "@modules/auth/components/SessionsCard";
+import { useUpdateUser } from "@modules/admin/hooks/useAdmin";
+import {
+  editUserSchema,
+  type EditUserForm,
+} from "@modules/admin/admin.validation";
+import type { UpdateUserBody } from "@modules/admin/types";
 
-/** The signed-in user's own account. Read-only except the password (role etc. are admin-managed). */
+/** The signed-in user's own account. Read-only except the password (role etc. are admin-managed). An administrator can also edit their own details. */
 export default function ProfileScreen() {
   const stored = useAuthStore((s) => s.user);
   const hospital = useAuthStore((s) => s.hospital);
   const logout = useAuthStore((s) => s.logout);
   const me = useMe();
+  const [editing, setEditing] = useState(false);
 
   // Prefer /auth/me: fresher than the persisted copy and includes lastLoginAt.
   const user = (me.data?.user ?? stored) as
@@ -47,6 +55,8 @@ export default function ProfileScreen() {
       </Screen>
     );
   }
+
+  const isAdmin = user.role === ROLES.ADMIN;
 
   return (
     <Screen
@@ -73,44 +83,71 @@ export default function ProfileScreen() {
                 {user.designation ? ` · ${user.designation}` : ""}
               </Text>
             </VStack>
+            {isAdmin && !editing ? (
+              <Button
+                label="Edit profile"
+                variant="secondary"
+                size="sm"
+                fullWidth={false}
+                onPress={() => setEditing(true)}
+                testID="profile-edit"
+              />
+            ) : null}
           </HStack>
-          <VStack gap={8} style={{ marginTop: 16 }}>
-            <Detail
-              label="Employee ID"
-              value={user.employeeId}
-              testID="profile-employee-id"
+
+          {isAdmin && editing ? (
+            <AdminProfileEditForm
+              key={`edit-${user.id}`}
+              user={user}
+              onDone={() => setEditing(false)}
             />
-            <Detail
-              label="Department"
-              value={user.departmentName || "No department"}
-              testID="profile-department"
-            />
-            <Detail label="Email" value={user.email} testID="profile-email" />
-            {user.phone ? (
-              <Detail
-                label="Mobile"
-                value={user.phone}
-                testID="profile-phone"
-              />
-            ) : null}
-            {hospital ? (
-              <Detail
-                label="Hospital"
-                value={hospital.name}
-                testID="profile-hospital"
-              />
-            ) : null}
-            {user.lastLoginAt ? (
-              <Detail
-                label="Signed in"
-                value={formatDateTime(user.lastLoginAt)}
-                testID="profile-last-login"
-              />
-            ) : null}
-          </VStack>
-          <Text variant="caption" tone="tertiary" style={{ marginTop: 12 }}>
-            Your name, role and department are managed by your administrator.
-          </Text>
+          ) : (
+            <>
+              <VStack gap={8} style={{ marginTop: 16 }}>
+                <Detail
+                  label="Employee ID"
+                  value={user.employeeId}
+                  testID="profile-employee-id"
+                />
+                <Detail
+                  label="Department"
+                  value={user.departmentName || "No department"}
+                  testID="profile-department"
+                />
+                <Detail
+                  label="Email"
+                  value={user.email}
+                  testID="profile-email"
+                />
+                {user.phone ? (
+                  <Detail
+                    label="Mobile"
+                    value={user.phone}
+                    testID="profile-phone"
+                  />
+                ) : null}
+                {hospital ? (
+                  <Detail
+                    label="Hospital"
+                    value={hospital.name}
+                    testID="profile-hospital"
+                  />
+                ) : null}
+                {user.lastLoginAt ? (
+                  <Detail
+                    label="Signed in"
+                    value={formatDateTime(user.lastLoginAt)}
+                    testID="profile-last-login"
+                  />
+                ) : null}
+              </VStack>
+              <Text variant="caption" tone="tertiary" style={{ marginTop: 12 }}>
+                {isAdmin
+                  ? "As an administrator you can edit your own name, email, mobile and designation here."
+                  : "Your name, role and department are managed by your administrator."}
+              </Text>
+            </>
+          )}
         </Card>
 
         <ChangePasswordCard email={user.email} />
@@ -161,6 +198,145 @@ function Detail({
         {value}
       </Text>
     </HStack>
+  );
+}
+
+/** Administrator self-edit. Uses the same PATCH /users/:id as the Users screen, sending only changed fields. */
+function AdminProfileEditForm({
+  user,
+  onDone,
+}: {
+  user: AuthUser;
+  onDone: () => void;
+}) {
+  const update = useUpdateUser(user.id);
+  const updateStored = useAuthStore((s) => s.updateUser);
+  const qc = useQueryClient();
+
+  const { control, handleSubmit } = useForm<EditUserForm>({
+    resolver: zodResolver(editUserSchema),
+    mode: "onTouched",
+    defaultValues: {
+      firstName: user.firstName,
+      lastName: user.lastName ?? "",
+      email: user.email,
+      phone: user.phone ?? "",
+      designation: user.designation ?? "",
+    },
+  });
+
+  const submit = handleSubmit((v) => {
+    const patch: UpdateUserBody = {};
+    if (v.firstName !== user.firstName) patch.firstName = v.firstName;
+    if ((v.lastName ?? "") !== (user.lastName ?? ""))
+      patch.lastName = v.lastName ?? "";
+    if (v.email.toLowerCase() !== user.email.toLowerCase())
+      patch.email = v.email;
+    // The API treats an empty phone as "no change", so it can be replaced but not cleared.
+    if (v.phone && v.phone !== user.phone) patch.phone = v.phone;
+    if ((v.designation ?? "") !== (user.designation ?? ""))
+      patch.designation = v.designation ?? "";
+
+    if (Object.keys(patch).length === 0) {
+      onDone();
+      return;
+    }
+
+    update.mutate(patch, {
+      onSuccess: () => {
+        const lastName = patch.lastName ?? user.lastName ?? "";
+        const firstName = patch.firstName ?? user.firstName;
+        // Keep the persisted copy and the /auth/me cache in step with the new name.
+        updateStored({
+          firstName,
+          lastName,
+          fullName: `${firstName} ${lastName}`.trim(),
+          email: patch.email ?? user.email,
+          phone: patch.phone ?? user.phone,
+          designation: patch.designation ?? user.designation,
+        });
+        void qc.invalidateQueries({ queryKey: ["me"] });
+        onDone();
+      },
+    });
+  });
+
+  return (
+    <VStack gap={14} style={{ marginTop: 16 }} testID="profile-edit-form">
+      {update.isError ? (
+        <View testID="profile-edit-error">
+          <Banner
+            tone="danger"
+            message={apiErrorMessage(update.error, "Could not save your profile")}
+          />
+        </View>
+      ) : null}
+      <HStack gap={12} wrap>
+        <View style={{ flex: 1, minWidth: 200 }}>
+          <ControlledTextField
+            control={control}
+            name="firstName"
+            label="First name"
+            required
+            testID="profile-edit-firstName"
+          />
+        </View>
+        <View style={{ flex: 1, minWidth: 200 }}>
+          <ControlledTextField
+            control={control}
+            name="lastName"
+            label="Last name"
+            testID="profile-edit-lastName"
+          />
+        </View>
+      </HStack>
+      <HStack gap={12} wrap>
+        <View style={{ flex: 1, minWidth: 240 }}>
+          <ControlledTextField
+            control={control}
+            name="email"
+            label="Work email"
+            required
+            keyboardType="email-address"
+            autoCapitalize="none"
+            hint="Changing this changes what you sign in with."
+            testID="profile-edit-email"
+          />
+        </View>
+        <View style={{ flex: 1, minWidth: 200 }}>
+          <ControlledTextField
+            control={control}
+            name="phone"
+            label="Mobile"
+            keyboardType="phone-pad"
+            testID="profile-edit-phone"
+          />
+        </View>
+      </HStack>
+      <ControlledTextField
+        control={control}
+        name="designation"
+        label="Designation"
+        testID="profile-edit-designation"
+      />
+      <HStack gap={8} wrap>
+        <Button
+          label="Save profile"
+          fullWidth={false}
+          onPress={submit}
+          loading={update.isPending}
+          testID="profile-edit-save"
+        />
+        <Button
+          label="Cancel"
+          variant="ghost"
+          fullWidth={false}
+          disabled={update.isPending}
+          onPress={onDone}
+          testID="profile-edit-cancel"
+        />
+      </HStack>
+    </VStack>
   );
 }
 
