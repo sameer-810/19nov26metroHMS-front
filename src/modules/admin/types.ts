@@ -331,7 +331,10 @@ export interface Bed {
   features: { oxygen: boolean; ventilator: boolean; monitor: boolean };
   ward: { id: string; name: string; code: string; type: WardType } | null;
   room: { id: string; number: string; type: RoomType } | null;
+  /** The bed's own switch, as edited under Hospital setup. */
   isActive: boolean;
+  /** isActive and its room and ward are active too: whether it belongs on the board. */
+  inService: boolean;
 }
 
 export interface BulkBedsBody {

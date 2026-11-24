@@ -82,7 +82,8 @@ export default function BedsScreen() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const active = useMemo(
-    () => (beds.data ?? []).filter((b) => b.isActive),
+    // inService, not isActive: a deactivated room or ward leaves its beds' own flag on
+    () => (beds.data ?? []).filter((b) => b.inService),
     [beds.data],
   );
   // looked up from the fresh list each render so a just-admitted bed is not acted on from a stale copy
