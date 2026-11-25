@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { useAuthStore } from "@shared/store/useAuthStore";
 import { palette } from "@shared/designSystem";
+import { BrandLogo } from "@shared/ui/BrandMark";
 import AppNavigator from "./AppNavigator";
 import AuthNavigator from "./AuthNavigator";
 import ChangePasswordScreen from "@modules/auth/screens/ChangePasswordScreen";
@@ -32,17 +33,23 @@ export default function RootNavigator() {
     if (isHydrated) void useAuthStore.getState().initializeAuth();
   }, [isHydrated]);
 
+  // Branded hold while the saved session is checked. White to continue the native splash.
   if (!isHydrated || !isAuthChecked) {
     return (
       <View
         style={{
           flex: 1,
-          backgroundColor: palette.surface.secondary,
+          backgroundColor: "#FFFFFF",
           alignItems: "center",
           justifyContent: "center",
+          padding: 24,
         }}
       >
-        <ActivityIndicator color={palette.clinical[600]} />
+        <BrandLogo width={280} />
+        <ActivityIndicator
+          color={palette.clinical[600]}
+          style={{ marginTop: 32 }}
+        />
       </View>
     );
   }

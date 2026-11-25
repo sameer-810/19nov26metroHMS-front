@@ -6,6 +6,7 @@
     "orientation": "default",
     "scheme": "hms",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/brand/app-icon.png",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -19,6 +20,10 @@
     },
     "android": {
       "package": "com.hms.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.VIBRATE",
@@ -48,7 +53,19 @@
       "expo-camera",
       "expo-audio",
       "expo-sharing",
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brand/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF",
+          "dark": {
+            "image": "./assets/brand/splash-icon.png",
+            "backgroundColor": "#FFFFFF"
+          }
+        }
+      ]
     ],
     "runtimeVersion": {
       "policy": "appVersion"
