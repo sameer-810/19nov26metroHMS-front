@@ -42,13 +42,13 @@ jobs:
           URL=$(jq -r '.[0].artifacts.buildUrl' build.json)
           echo "AAB URL: $URL"
           echo "### AAB ready: [$URL]($URL)" >> "$GITHUB_STEP_SUMMARY"
-          curl -L -o metro-hospital.aab "$URL"
+          curl -L -o Metro-Hospital.aab "$URL"
 
       - name: Upload AAB to this run
         uses: actions/upload-artifact@v4
         with:
-          name: metro-hospital-aab
-          path: metro-hospital.aab
+          name: Metro-Hospital-AAB
+          path: Metro-Hospital.aab
 
       - name: Publish AAB to GitHub Releases
         uses: softprops/action-gh-release@v2
@@ -56,4 +56,4 @@ jobs:
           tag_name: aab-${{ github.run_number }}
           name: Metro Hospital AAB (build ${{ github.run_number }})
           body: Play Store build (production profile). Upload this .aab in Google Play Console; it cannot be installed on a phone directly.
-          files: metro-hospital.aab
+          files: Metro-Hospital.aab
