@@ -6,6 +6,9 @@ name: Build Android AAB (Play Store)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write # needed to create the GitHub Release
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -46,3 +49,11 @@ jobs:
         with:
           name: metro-hospital-aab
           path: metro-hospital.aab
+
+      - name: Publish AAB to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: aab-${{ github.run_number }}
+          name: Metro Hospital AAB (build ${{ github.run_number }})
+          body: Play Store build (production profile). Upload this .aab in Google Play Console; it cannot be installed on a phone directly.
+          files: metro-hospital.aab

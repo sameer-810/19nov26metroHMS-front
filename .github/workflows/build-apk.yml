@@ -5,6 +5,9 @@ name: Build Android APK
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write # needed to create the GitHub Release
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -45,3 +48,12 @@ jobs:
         with:
           name: metro-hospital-apk
           path: metro-hospital.apk
+
+      - name: Publish APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: Metro Hospital APK (build ${{ github.run_number }})
+          body: Android test build (preview profile). Download the .apk below and install it on the phone.
+          prerelease: true
+          files: metro-hospital.apk
