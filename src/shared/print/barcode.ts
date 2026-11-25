@@ -1,3 +1,4 @@
+// On Android/iOS, metro.config.js swaps this for bwip-js's platform-neutral build.
 import * as bwipjs from "bwip-js";
 
 import { fitModule, mm, THERMAL_DPI } from "./sizing";
