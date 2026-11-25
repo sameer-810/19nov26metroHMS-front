@@ -272,8 +272,12 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         refreshToken: state.refreshToken,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state) state.isHydrated = true;
+      // Runs after the stored session loads, or fails to. It must go through setState:
+      // mutating `state` does not notify subscribers, so on native (SecureStore resolves
+      // after the first render) RootNavigator would sit on its spinner forever.
+      // A failed read still marks hydration done, so the app falls through to sign-in.
+      onRehydrateStorage: () => () => {
+        queueMicrotask(() => useAuthStore.setState({ isHydrated: true }));
       },
     },
   ),

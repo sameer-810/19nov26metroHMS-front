@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { ScrollView, Text } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -255,52 +256,108 @@ const linking: LinkingOptions<RootParamList> = {
   },
 };
 
+/** Longest the splash may stay up; past this the app renders with system fonts. */
+const SPLASH_TIMEOUT_MS = 8000;
+
+/**
+ * Last-resort screen for a render crash. Without it a release build shows only the
+ * blank splash background, which says nothing about what went wrong.
+ */
+class StartupErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch() {
+    void SplashScreen.hideAsync();
+  }
+
+  render() {
+    const { error } = this.state;
+    if (!error) return this.props.children;
+    return (
+      <ScrollView
+        style={{ flex: 1, backgroundColor: "#ffffff" }}
+        contentContainerStyle={{ padding: 24, paddingTop: 64 }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: "600", color: "#b42318" }}>
+          Metro Hospital could not start
+        </Text>
+        <Text style={{ marginTop: 12, fontSize: 14, color: "#101828" }}>
+          {String(error.message || error)}
+        </Text>
+        <Text style={{ marginTop: 12, fontSize: 11, color: "#475467" }}>
+          {error.stack?.split("\n").slice(0, 12).join("\n")}
+        </Text>
+      </ScrollView>
+    );
+  }
+}
+
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
   });
+  const [splashTimedOut, setSplashTimedOut] = useState(false);
+  // A font that fails to load must not hold the app on the splash; it falls back to the system font.
+  const ready = fontsLoaded || Boolean(fontError) || splashTimedOut;
 
   useEffect(() => {
-    if (fontsLoaded) void SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    const timer = setTimeout(() => setSplashTimedOut(true), SPLASH_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (ready) void SplashScreen.hideAsync();
+  }, [ready]);
 
   // started before sign-in so the login screen can already report being offline.
   useEffect(() => startNetworkWatch(), []);
   useEffect(() => registerServiceWorker(), []);
 
-  if (!fontsLoaded) return null;
+  if (!ready) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <NavigationContainer
-            linking={linking}
-            theme={{
-              dark: false,
-              colors: {
-                primary: palette.clinical[600],
-                background: palette.surface.secondary,
-                card: palette.surface.primary,
-                text: palette.text.primary,
-                border: palette.border.default,
-                notification: palette.danger.text,
-              },
-              fonts: {
-                regular: { fontFamily: "Inter_400Regular", fontWeight: "400" },
-                medium: { fontFamily: "Inter_500Medium", fontWeight: "500" },
-                bold: { fontFamily: "Inter_600SemiBold", fontWeight: "600" },
-                heavy: { fontFamily: "Inter_600SemiBold", fontWeight: "600" },
-              },
-            }}
-          >
-            <StatusBar style="dark" />
-            <RootNavigator />
-          </NavigationContainer>
-        </QueryClientProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <StartupErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <QueryClientProvider client={queryClient}>
+            <NavigationContainer
+              linking={linking}
+              theme={{
+                dark: false,
+                colors: {
+                  primary: palette.clinical[600],
+                  background: palette.surface.secondary,
+                  card: palette.surface.primary,
+                  text: palette.text.primary,
+                  border: palette.border.default,
+                  notification: palette.danger.text,
+                },
+                fonts: {
+                  regular: {
+                    fontFamily: "Inter_400Regular",
+                    fontWeight: "400",
+                  },
+                  medium: { fontFamily: "Inter_500Medium", fontWeight: "500" },
+                  bold: { fontFamily: "Inter_600SemiBold", fontWeight: "600" },
+                  heavy: { fontFamily: "Inter_600SemiBold", fontWeight: "600" },
+                },
+              }}
+            >
+              <StatusBar style="dark" />
+              <RootNavigator />
+            </NavigationContainer>
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </StartupErrorBoundary>
   );
 }
