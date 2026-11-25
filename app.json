@@ -6,8 +6,9 @@
     "orientation": "default",
     "scheme": "hms",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hms.app",
@@ -41,15 +42,17 @@
       "themeColor": "#12367F",
       "description": "Reception, consultation, wards, laboratory, pharmacy and billing on one connected platform."
     },
-    "plugins": ["expo-secure-store", "expo-font", "expo-camera", "expo-audio"],
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      "expo-camera",
+      "expo-audio",
+      "expo-sharing",
+      "expo-splash-screen"
+    ],
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "extra": {
-      "eas": {
-        "projectId": "de336b74-2d97-49c5-b626-adadb2237145"
-      }
-    },
-    "owner": "hms699s-team"
+    "extra": {}
   }
 }
